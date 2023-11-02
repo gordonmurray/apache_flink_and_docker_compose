@@ -1,0 +1,49 @@
+version: '3.7'
+
+services:
+
+  mariadb:
+    image: mariadb:10.6.14
+    container_name: mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+    volumes:
+      - ./sql/mariadb.cnf:/etc/mysql/mariadb.conf.d/mariadb.cnf
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3306:3306"
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  jobmanager:
+    image: flink:1.17.1
+    container_name: jobmanager
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    volumes:
+      - ./jars/flink-sql-connector-mysql-cdc-2.4.1.jar:/opt/flink/lib/flink-sql-connector-mysql-cdc-2.4.1.jar
+      - ./jars/flink-connector-jdbc-3.1.0-1.17.jar:/opt/flink/lib/flink-connector-jdbc-3.1.0-1.17.jar
+      - ./jars/flink-connector-redis-1.3.0-jar-with-dependencies.jar:/opt/flink/lib/flink-connector-redis-1.3.0-jar-with-dependencies.jar
+      - ./jobs/job.sql:/opt/flink/job.sql
+
+  taskmanager:
+    image: flink:1.17.1
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    volumes:
+      - ./jars/flink-sql-connector-mysql-cdc-2.4.1.jar:/opt/flink/lib/flink-sql-connector-mysql-cdc-2.4.1.jar
+      - ./jars/flink-connector-jdbc-3.1.0-1.17.jar:/opt/flink/lib/flink-connector-jdbc-3.1.0-1.17.jar
+      - ./jars/flink-connector-redis-1.3.0-jar-with-dependencies.jar:/opt/flink/lib/flink-connector-redis-1.3.0-jar-with-dependencies.jar
+
+    deploy:
+          replicas: 2
