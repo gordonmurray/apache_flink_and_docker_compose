@@ -1,6 +1,8 @@
 # Apache Flink containers using Docker Compose
 Running Apache Flink containers using Docker Compose is a convenient way to get up and running to try out some Flink workloads.
 
+There is a post to go along with this project here [https://gordonmurray.com/data/2023/11/02/deploying-flink-cdc-jobs-with-docker-compose.html](https://gordonmurray.com/data/2023/11/02/deploying-flink-cdc-jobs-with-docker-compose.html)
+
 Assuming docker compose is installed you can start the containers using the following command in the same folder as the docker compose file:
 
 ```
@@ -26,4 +28,10 @@ To start adding some work to Flink you can access the Flink console using the fo
 
 ```bash
 docker exec -it jobmanager /opt/flink/bin/sql-client.sh
+```
+
+To run a Flink job to CDC from a Mariadb container and sink some data in to Redis, use the following:
+
+```bash
+docker exec -it jobmanager /opt/flink/bin/sql-client.sh embedded -f job.sql
 ```
