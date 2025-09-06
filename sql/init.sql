@@ -23,3 +23,10 @@ VALUES
     (8, 108, 'Product H', '2023-01-08', 800.00),
     (9, 109, 'Product I', '2023-01-09', 900.00),
     (10, 110, 'Product J', '2023-01-10', 1000.00);
+
+-- Create a table to store aggregated results
+CREATE TABLE sales_analytics (
+    metric_name VARCHAR(255) PRIMARY KEY,
+    metric_value DECIMAL(15, 2),
+    calculated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);

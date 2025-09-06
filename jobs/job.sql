@@ -22,25 +22,28 @@ SELECT
 FROM
     sales_records_table;
 
--- create a redis sink table
-CREATE TABLE redis_sink (
-    key_name STRING,
-    total DECIMAL(10, 2),
-    PRIMARY KEY (key_name) NOT ENFORCED
+-- create a MariaDB sink table for analytics
+CREATE TABLE mariadb_analytics_sink (
+    metric_name STRING,
+    metric_value DECIMAL(15, 2),
+    calculated_at TIMESTAMP(3),
+    PRIMARY KEY (metric_name) NOT ENFORCED
 ) WITH (
-    'connector' = 'redis',
-    'redis-mode' = 'single',
-    'host' = 'redis',
-    'port' = '6379',
-    'database' = '0',
-    'command' = 'SET'
+    'connector' = 'jdbc',
+    'url' = 'jdbc:mysql://mariadb:3306/sales_database',
+    'username' = 'root',
+    'password' = 'rootpassword',
+    'table-name' = 'sales_analytics',
+    'sink.buffer-flush.max-rows' = '1',
+    'sink.buffer-flush.interval' = '1s'
 );
 
--- insert the aggregated sales records into the redis sink table
+-- insert the aggregated sales records into the MariaDB analytics table
 INSERT INTO
-    redis_sink
+    mariadb_analytics_sink
 SELECT
-    'total_sales',
-    total_sales_amount
+    'total_sales' AS metric_name,
+    total_sales_amount AS metric_value,
+    CURRENT_TIMESTAMP AS calculated_at
 FROM
     total_sales;

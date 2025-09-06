@@ -1,20 +1,7 @@
-version: '3.7'
-
 services:
 
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor
-    container_name: cadvisor
-    ports:
-      - "8080:8080"
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:rw
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-
   mariadb:
-    image: mariadb:10.6.14
+    image: mariadb:11.8
     container_name: mariadb
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
@@ -24,14 +11,8 @@ services:
     ports:
       - "3306:3306"
 
-  redis:
-    image: redis:latest
-    container_name: redis
-    ports:
-      - "6379:6379"
-
   jobmanager:
-    image: flink:1.17.1
+    build: .
     container_name: jobmanager
     environment:
       - |
@@ -44,13 +25,10 @@ services:
       - "8081:8081"
     command: jobmanager
     volumes:
-      - ./jars/flink-sql-connector-mysql-cdc-2.4.1.jar:/opt/flink/lib/flink-sql-connector-mysql-cdc-2.4.1.jar
-      - ./jars/flink-connector-jdbc-3.1.0-1.17.jar:/opt/flink/lib/flink-connector-jdbc-3.1.0-1.17.jar
-      - ./jars/flink-connector-redis-1.3.0-jar-with-dependencies.jar:/opt/flink/lib/flink-connector-redis-1.3.0-jar-with-dependencies.jar
       - ./jobs/job.sql:/opt/flink/job.sql
 
   taskmanager:
-    image: flink:1.17.1
+    build: .
     environment:
       - |
         FLINK_PROPERTIES=
@@ -61,10 +39,5 @@ services:
     depends_on:
       - jobmanager
     command: taskmanager
-    volumes:
-      - ./jars/flink-sql-connector-mysql-cdc-2.4.1.jar:/opt/flink/lib/flink-sql-connector-mysql-cdc-2.4.1.jar
-      - ./jars/flink-connector-jdbc-3.1.0-1.17.jar:/opt/flink/lib/flink-connector-jdbc-3.1.0-1.17.jar
-      - ./jars/flink-connector-redis-1.3.0-jar-with-dependencies.jar:/opt/flink/lib/flink-connector-redis-1.3.0-jar-with-dependencies.jar
-
     deploy:
           replicas: 2
