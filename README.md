@@ -15,11 +15,14 @@ When you insert, update, or delete records in the source table, the analytics ar
 
 ## Architecture
 
-```
-┌─────────────┐    CDC     ┌──────────────┐    JDBC     ┌─────────────────┐
-│   MariaDB   │ ────────> │ Apache Flink │ ─────────> │ MariaDB         │
-│ sales_records│           │ Processing   │            │ sales_analytics │
-└─────────────┘           └──────────────┘            └─────────────────┘
+```mermaid
+graph LR
+    A[MariaDB<br/>sales_records] -->|CDC<br/>Real-time Changes| B[Apache Flink<br/>Stream Processing]
+    B -->|JDBC<br/>Analytics Results| C[MariaDB<br/>sales_analytics]
+    
+    style A fill:#e1f5fe
+    style B fill:#f3e5f5
+    style C fill:#e8f5e8
 ```
 
 ### Components
