@@ -19,5 +19,9 @@ RUN set -eux; \
 # Set proper ownership
 RUN chown flink:flink /opt/flink/lib/*.jar
 
+# Create checkpoint and savepoint directories with correct ownership
+RUN mkdir -p /opt/flink/checkpoints /opt/flink/savepoints && \
+    chown flink:flink /opt/flink/checkpoints /opt/flink/savepoints
+
 # Verify JARs were downloaded
 RUN ls -la /opt/flink/lib/flink-*mysql* /opt/flink/lib/flink-*jdbc* /opt/flink/lib/mysql-connector*
