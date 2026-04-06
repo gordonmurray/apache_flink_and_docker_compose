@@ -9,7 +9,7 @@ This project creates a **database-to-database CDC pipeline** that:
 1. **Captures changes** from a MariaDB `sales_records` table in real-time
 2. **Processes data** using Apache Flink to calculate running totals and analytics  
 3. **Sinks results** back to a MariaDB `sales_analytics` table
-4. **Provides monitoring** via Flink Web UI and cAdvisor metrics
+4. **Provides monitoring** via Flink Web UI and Prometheus metrics
 
 When you insert, update, or delete records in the source table, the analytics are automatically recalculated and updated within seconds.
 
@@ -258,11 +258,80 @@ docker exec mariadb mariadb -u root -prootpassword -e "SHOW VARIABLES LIKE 'log_
 - Scale task managers up via `docker compose up --scale taskmanager=4`
 - Monitor via Flink Web UI at http://localhost:8081
 
+## Fault Tolerance and Recovery
+
+This project includes Flink checkpointing so you can observe and test recovery behavior locally.
+
+### What's Configured
+
+- **Checkpointing**: Enabled every 60 seconds with `EXACTLY_ONCE` mode
+- **State backend**: `hashmap` with checkpoints persisted to a Docker named volume
+- **Restart strategy**: `fixed-delay` with up to 3 restart attempts, 10 seconds apart
+- **Task slots**: Each TaskManager has 2 slots, so the job can recover onto a single surviving TaskManager
+
+### Recovery Semantics
+
+Flink checkpoints store the CDC binlog position, so on recovery the source connector resumes from where it left off — no events are lost.
+
+The JDBC sink provides **at-least-once** delivery. Because the sink table uses a `PRIMARY KEY` with upsert semantics (`INSERT ... ON DUPLICATE KEY UPDATE`), duplicate writes are idempotent and the result remains correct after recovery.
+
+### Testing Recovery Locally
+
+1. **Start the stack and submit the job**
+
+```bash
+docker compose up -d --build
+docker exec jobmanager /opt/flink/bin/sql-client.sh embedded -f job.sql
+```
+
+2. **Verify the pipeline is working**
+
+```bash
+docker exec mariadb mariadb -u root -prootpassword -e "USE sales_database; SELECT * FROM sales_analytics;"
+```
+
+3. **Insert a new record**
+
+```bash
+docker exec mariadb mariadb -u root -prootpassword -e "
+USE sales_database;
+INSERT INTO sales_records (sale_id, product_id, product_name, sale_date, sale_amount)
+VALUES (11, 111, 'Product K', '2023-01-11', 1100.00);"
+```
+
+4. **Kill a TaskManager to simulate failure**
+
+```bash
+docker compose kill taskmanager --signal SIGKILL
+```
+
+5. **Restart the TaskManager**
+
+```bash
+docker compose up -d taskmanager
+```
+
+6. **Wait for recovery and verify**
+
+Open the Flink Web UI at http://localhost:8081 and watch the job transition from `RESTARTING` back to `RUNNING`. Then check that the analytics are still correct:
+
+```bash
+docker exec mariadb mariadb -u root -prootpassword -e "USE sales_database; SELECT * FROM sales_analytics;"
+```
+
+The `metric_value` should reflect all records, including the one inserted before the failure.
+
+### Limitations of the Local Setup
+
+- Checkpoints are stored on a shared Docker volume, not a distributed filesystem. In production you would use S3, HDFS, or similar.
+- With 2 TaskManager replicas and 2 slots each, there are enough slots to recover from a single TaskManager failure. Losing both TaskManagers simultaneously requires a full restart.
+- The `hashmap` state backend keeps state in memory. For larger state, the `rocksdb` backend would be more appropriate.
+
 ## Technical Notes
 
 - **Flink Version**: 1.19.3 with Java 17
 - **CDC Latency**: Typically <1 second for simple aggregations
-- **Fault Tolerance**: Flink checkpoints enabled for exactly-once processing
+- **Fault Tolerance**: Checkpointing every 60s with exactly-once source, at-least-once sink (idempotent via upsert)
 - **Database Compatibility**: Works with MySQL 5.6+, MariaDB 10.x+ (tested with 11.8 LTS)
 
 Built using modern Docker practices with dependency management inspired by successful production deployments.
