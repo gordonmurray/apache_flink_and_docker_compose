@@ -59,14 +59,14 @@ This will start:
 docker ps
 ```
 
-You should see 4 containers running:
+You should see 4 containers running. MariaDB includes a healthcheck, so `jobmanager` will wait until the database is fully initialised before starting:
 
 ```
-CONTAINER ID   IMAGE                                         PORTS                     NAMES
-abc123...      apache_flink_and_docker_compose-jobmanager   0.0.0.0:8081->8081/tcp   jobmanager
-def456...      apache_flink_and_docker_compose-taskmanager  6123/tcp, 8081/tcp       taskmanager-1
-ghi789...      apache_flink_and_docker_compose-taskmanager  6123/tcp, 8081/tcp       taskmanager-2
-jkl012...      mariadb:11.8                                 0.0.0.0:3306->3306/tcp   mariadb
+CONTAINER ID   IMAGE                                         STATUS                  NAMES
+abc123...      apache_flink_and_docker_compose-jobmanager   Up 10 seconds           jobmanager
+def456...      apache_flink_and_docker_compose-taskmanager  Up 10 seconds           taskmanager-1
+ghi789...      apache_flink_and_docker_compose-taskmanager  Up 10 seconds           taskmanager-2
+jkl012...      mariadb:11.8                                 Up 20 seconds (healthy) mariadb
 ```
 
 ### 3. Run the CDC Pipeline
