@@ -10,6 +10,12 @@ services:
       - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "3306:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   jobmanager:
     build: .
@@ -33,6 +39,9 @@ services:
         metrics.reporter.prom.port: 9091
     ports:
       - "8081:8081"
+    depends_on:
+      mariadb:
+        condition: service_healthy
     command: jobmanager
     volumes:
       - ./jobs/job.sql:/opt/flink/job.sql
