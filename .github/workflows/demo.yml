@@ -1,0 +1,41 @@
+name: CDC demo
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cdc-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      COMPOSE_PROJECT_NAME: flink-ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate configuration and scripts
+        run: |
+          docker compose config --quiet
+          bash -n scripts/submit-job.sh sql/users.sh
+          shellcheck scripts/submit-job.sh sql/users.sh
+          python3 -m py_compile scripts/demo.py
+      - name: Start the pipeline
+        run: python3 scripts/demo.py start
+      - name: Check insert, update and delete propagation
+        run: python3 scripts/demo.py check
+      - name: Check repeated submission and demo execution
+        run: |
+          python3 scripts/demo.py start
+          python3 scripts/demo.py check
+      - name: Collect diagnostics
+        if: failure()
+        run: |
+          docker compose ps -a
+          docker compose logs --no-color --tail=250
+      - name: Clean up CI volumes
+        if: always()
+        run: docker compose down -v --remove-orphans
