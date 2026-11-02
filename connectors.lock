@@ -3,3 +3,6 @@
 f8357ab799095e6486315db4019edf63ced762bc8c2eaa63614c7b962755564b  org/apache/flink/flink-connector-jdbc-core/4.1.0-2.2/flink-connector-jdbc-core-4.1.0-2.2.jar
 4d5cc7a60ac67f4f1f3eadc76ac7b9f591341bb01a3917b593cdd12305c44ecf  org/apache/flink/flink-connector-jdbc-mysql/4.1.0-2.2/flink-connector-jdbc-mysql-4.1.0-2.2.jar
 d77962877d010777cff997015da90ee689f0f4bb76848340e1488f2b83332af5  com/mysql/mysql-connector-j/8.4.0/mysql-connector-j-8.4.0.jar
+# JDBC lineage extraction dependencies (no lineage exporter is configured).
+d575b68bf72996e34d59013c9e877c19c0eea876fcccd49e246287048d09a54b  io/openlineage/openlineage-java/1.32.0/openlineage-java-1.32.0.jar
+39e9be8f94c64d975eeb2c407937897e9654b69c0f7de3ba4cd47c946e7cf37c  io/openlineage/openlineage-sql-java/1.32.0/openlineage-sql-java-1.32.0.jar

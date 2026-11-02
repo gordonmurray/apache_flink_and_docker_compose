@@ -173,7 +173,7 @@ def recovery():
         db(f"UPDATE sales_records SET sale_amount=98.76 WHERE sale_id={PROBE_ID}")
         restored_id = submit(path)
         wait_for("explicit checkpoint restoration", lambda:
-                 api(f"jobs/{restored_id}/checkpoints")["latest"].get("restored", {}).get("external_path") == path)
+                 (api(f"jobs/{restored_id}/checkpoints")["latest"].get("restored") or {}).get("external_path") == path)
         expect_total(baseline + Decimal("98.76"), "change while the job was stopped")
         remove_probe()
         expect_total(baseline, "delete after recovery")
