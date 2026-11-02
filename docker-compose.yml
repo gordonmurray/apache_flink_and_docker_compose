@@ -6,6 +6,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
     volumes:
+      - mariadb-data:/var/lib/mysql
       - ./sql/mariadb.cnf:/etc/mysql/mariadb.conf.d/mariadb.cnf
       - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
@@ -78,5 +79,6 @@ services:
           replicas: 2
 
 volumes:
+  mariadb-data:
   flink-checkpoints:
   flink-savepoints:

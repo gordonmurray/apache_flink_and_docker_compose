@@ -2,4 +2,8 @@
 max_connections = 1000
 bind-address            = 0.0.0.0
 binlog_format = ROW
-log_bin = /var/log/mysql/mysql-bin.log
+log_bin = /var/lib/mysql/mysql-bin
+server_id = 1
+binlog_row_image = FULL
+# Keep binlogs long enough for local checkpoint recovery (seven days).
+binlog_expire_logs_seconds = 604800
