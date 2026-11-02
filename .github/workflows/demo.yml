@@ -31,6 +31,8 @@ jobs:
         run: |
           python3 scripts/demo.py start
           python3 scripts/demo.py check
+      - name: Verify worker failure and full cluster recovery
+        run: python3 scripts/demo.py recovery
       - name: Collect diagnostics
         if: failure()
         run: |

@@ -9,7 +9,8 @@ x-flink: &flink
       rest.address: jobmanager
       rest.bind-address: 0.0.0.0
       parallelism.default: 2
-      taskmanager.numberOfTaskSlots: 2
+      # One slot per worker ensures the recovery test interrupts an active task.
+      taskmanager.numberOfTaskSlots: 1
       execution.checkpointing.interval: 10s
       execution.checkpointing.mode: EXACTLY_ONCE
       execution.checkpointing.min-pause: 5s

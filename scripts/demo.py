@@ -125,19 +125,82 @@ def check():
         remove_probe()
 
 
+def checkpoint(job_id, after_id=-1):
+    def completed():
+        latest = api(f"jobs/{job_id}/checkpoints")["latest"].get("completed")
+        return latest if latest and latest["id"] > after_id and latest.get("external_path") else None
+    return wait_for("a completed persistent checkpoint", completed)
+
+
+def recovery():
+    """Kill one worker, then recreate the cluster and explicitly restore state."""
+    job_id = wait_for("one running sales-total job", running_job)["jid"]
+    ensure_probe_absent()
+    baseline = total()
+    expect_total(baseline, "before recovery")
+    checkpoint(job_id)
+    restores_before = api(f"jobs/{job_id}/checkpoints")["counts"]["restored"]
+    workers = compose("ps", "-q", "taskmanager").splitlines()
+    if len(workers) != 2:
+        raise RuntimeError("Recovery test requires exactly two TaskManagers.")
+    worker = workers[0]
+    try:
+        subprocess.run(["docker", "kill", "--signal", "KILL", worker], check=True, timeout=30)
+        insert_probe("12.34")
+    finally:
+        subprocess.run(["docker", "start", worker], check=True, timeout=30)
+    try:
+        wait_for("TaskManager checkpoint recovery", lambda:
+                 api(f"jobs/{job_id}/checkpoints")["counts"]["restored"] > restores_before)
+        wait_for("job running after worker failure", running_job)
+        expect_total(baseline + Decimal("12.34"), "change during worker outage")
+
+        # Wait for a new checkpoint after the observed database result.
+        last = checkpoint(job_id)
+        saved = checkpoint(job_id, after_id=last["id"])
+        path = saved["external_path"]
+        binlog = db("SHOW MASTER STATUS").split("\t")[0]
+        print(f"Recreating containers; restoring {path}", flush=True)
+        compose("down")
+        compose("up", "-d", "--no-build", "--wait", "--wait-timeout", "180")
+        if total() != baseline + Decimal("12.34"):
+            raise RuntimeError("MariaDB data did not survive container recreation.")
+        retained_logs = {line.split("\t")[0] for line in db("SHOW BINARY LOGS").splitlines()}
+        if binlog not in retained_logs:
+            raise RuntimeError("The checkpoint's binary log did not survive recreation.")
+        if active_job():
+            raise RuntimeError("Expected a fresh JobManager without a submitted job.")
+        db(f"UPDATE sales_records SET sale_amount=98.76 WHERE sale_id={PROBE_ID}")
+        restored_id = submit(path)
+        wait_for("explicit checkpoint restoration", lambda:
+                 (api(f"jobs/{restored_id}/checkpoints")["latest"].get("restored") or {}).get("external_path") == path)
+        expect_total(baseline + Decimal("98.76"), "change while the job was stopped")
+        remove_probe()
+        expect_total(baseline, "delete after recovery")
+    finally:
+        remove_probe()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["start", "check"])
+    parser.add_argument("command", choices=["start", "check", "recovery", "restore"])
+    parser.add_argument("path", nargs="?", help="checkpoint or savepoint URI for restore")
     args = parser.parse_args()
+    if (args.command == "restore") != bool(args.path):
+        parser.error("restore requires a checkpoint/savepoint URI; other commands take no path")
     if args.command == "start":
         start()
-    else:
+    elif args.command == "check":
         check()
+    elif args.command == "recovery":
+        recovery()
+    else:
+        submit(args.path)
 
 
 if __name__ == "__main__":
     try:
         main()
-    except (RuntimeError, subprocess.TimeoutExpired) as error:
+    except (RuntimeError, subprocess.SubprocessError) as error:
         print(f"ERROR: {error}", file=sys.stderr)
         sys.exit(1)
