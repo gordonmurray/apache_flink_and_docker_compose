@@ -335,3 +335,14 @@ The `metric_value` should reflect all records, including the one inserted before
 - **Database Compatibility**: Works with MySQL 5.6+, MariaDB 10.x+ (tested with 11.8 LTS)
 
 Built using modern Docker practices with dependency management inspired by successful production deployments.
+## Persistent database storage
+
+MariaDB data and binary logs now share the `mariadb-data` named volume.
+`docker compose down` keeps this volume; `docker compose down -v` deletes it
+along with Flink checkpoints and savepoints. Initialization SQL runs only on an
+empty database volume.
+
+When upgrading an existing checkout, back up any data you need before starting
+this configuration: it does not automatically adopt the old anonymous database
+volume or container-local binary logs. Start a fresh demo job for the new database;
+old Flink checkpoints cannot safely resume against a newly initialized database.
