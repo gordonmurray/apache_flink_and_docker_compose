@@ -146,7 +146,7 @@ If a check times out, inspect the job's exceptions and checkpoint status in the
 dashboard. Ensure both workers are running. The test reserves sale ID
 `2147483600`; after an interrupted test, inspect and remove that row if necessary.
 
-[GitHub Actions](../../actions/workflows/demo.yml) builds the stack, runs the CDC
+[GitHub Actions](https://github.com/gordonmurray/apache_flink_and_docker_compose/actions/workflows/demo.yml) builds the stack, runs the CDC
 checks twice, and verifies worker and full-cluster recovery. CI removes its own
 volumes at the end. Prometheus monitoring is not included.
 
