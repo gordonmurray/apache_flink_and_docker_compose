@@ -1,3 +1,6 @@
+SET 'pipeline.name' = 'sales-total';
+SET 'table.exec.resource.default-parallelism' = '2';
+
 -- read in the data from the table in mariadb
 CREATE TABLE sales_records_table (
     sale_id INT,
@@ -9,10 +12,12 @@ CREATE TABLE sales_records_table (
     'connector' = 'mysql-cdc',
     'hostname' = 'mariadb',
     'port' = '3306',
-    'username' = 'root',
-    'password' = 'rootpassword',
+    'username' = 'flink_cdc',
+    'password' = '__CDC_PASSWORD__',
     'database-name' = 'sales_database',
-    'table-name' = 'sales_records'
+    'table-name' = 'sales_records',
+    'server-id' = '5401-5404',
+    'server-time-zone' = 'UTC'
 );
 
 -- create a view that aggregates the sales records
@@ -31,8 +36,8 @@ CREATE TABLE mariadb_analytics_sink (
 ) WITH (
     'connector' = 'jdbc',
     'url' = 'jdbc:mysql://mariadb:3306/sales_database',
-    'username' = 'root',
-    'password' = 'rootpassword',
+    'username' = 'flink_sink',
+    'password' = '__SINK_PASSWORD__',
     'table-name' = 'sales_analytics',
     'sink.buffer-flush.max-rows' = '1',
     'sink.buffer-flush.interval' = '1s'
